@@ -1,48 +1,47 @@
+html {
+    font-size: 16px;
+}
+
 header {
     font-family: 'Karma', serif;
 }
 
 body {
-    font-family: 'Raleway', sans-serif; ;
-    font-size : 100% ;
+    font-family: 'Raleway', sans-serif;
+    font-size: 100%;
     background-color : #fff ;
-    color : #111 ;
-    /* width : 80% ;
-    min-width : 400px ;
-    min-height : 200px ;
-    padding : 1em ;
-    margin : 5% 10% ;
-    border : thin solid gray ;
-    border-radius : 5px ;
-    display : block ; */
-
-    /* margin: 0;
-    padding: 0;
-    border: 0;
-    vertical-align: baseline;
-    line-height: 1; */
+    color: #111;
 }
 
 a:link    { color : blue ; text-decoration : none ;      }
 a:hover   { color : blue ; text-decoration : underline ; }
 a:visited { color : blue ;                               }
 
-h1 a { color : inherit !important }
-h2 a { color : inherit !important }
-h3 a { color : inherit !important }
-h4 a { color : inherit !important }
-h5 a { color : inherit !important }
-h6 a { color : inherit !important }
+h1 { font-size: 3.157em; }
+h2 { font-size: 2.369em; }
+h3 { font-size: 1.777em; }
+h4 { font-size: 1.333em; }
+h5 { font-size: 1.162em; }
 
-pre {
-    margin : 2em 1em 2em 4em ;
+h1 a, h2 a, h3 a, h4 a, h5 a { color : inherit !important }
+
+@media only screen and (min-width: 800px) {
+    html {
+        font-size: 16px;
+    }
+    div.text {
+        width: 800px;
+    }
 }
 
-#menu li {
-    display : inline ;
+@media only screen and (min-width: 1000px) {
+    div.text {
+        width: 80%;
+    }
 }
 
-#post-list {
-    margin-bottom : 1em ;
-    margin-top : 1em ;
+@media only screen and (min-width: 1200px) {
+    html {
+        font-size: 20px;
+    }
 }
