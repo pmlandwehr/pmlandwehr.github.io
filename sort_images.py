@@ -124,7 +124,7 @@ class ImageData:
 
     def table_cell(self) -> str:
         return (
-            f'<td><a href="{RELATIVE_FULL!s}/{self.name}.png">"'
+            f'<td><a href="{RELATIVE_FULL!s}/{self.name}.png">'
             f'<img src="{RELATIVE_THUMB!s}/{self.name}.png" alt="{self.alt_text}">'
             "</a></td>"
         )
