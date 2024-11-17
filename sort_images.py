@@ -152,12 +152,9 @@ def jaccard_similarity(key_one: str, key_two: str) -> float:
 # repeat.
 
 def row_getting_smaller(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[str]:
-    row = [shortest_to_longest[-1]]
-    shortest_to_longest.remove(row[-1])
-    if len(shortest_to_longest) < 1:
-        return row
+    row = [shortest_to_longest.pop(-1)]
 
-    while len(row) < images_per_row:
+    while len(row) < images_per_row and len(shortest_to_longest) > 0:
         candidate_images = []
         for key in reversed(shortest_to_longest):
             delta = image_dict[key].thumbnail.height - image_dict[row[-1]].thumbnail.height
@@ -170,20 +167,20 @@ def row_getting_smaller(shortest_to_longest: list[str], images_per_row: int, max
             else:
                 break
 
-        next_image = sorted(candidate_images)[0][1]
-        row.append(next_image)
-        shortest_to_longest.remove(next_image)
+        if len(candidate_images) < 1:
+            row.append(shortest_to_longest.pop(-1))
+        else:
+            next_image = sorted(candidate_images)[0][1]
+            row.append(next_image)
+            shortest_to_longest.remove(next_image)
 
     return row
 
 
-def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[str]:
-    row = [shortest_to_longest[0]]
-    shortest_to_longest.remove(row[-1])
-    if len(shortest_to_longest) < 1:
-        return row
+def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_height_delta: int) -> list[str]:
+    row = [shortest_to_longest.pop(0)]
 
-    while len(row) < images_per_row:
+    while len(row) < images_per_row and len(shortest_to_longest) > 0:
 
         candidate_images = []
         for key in shortest_to_longest:
@@ -196,9 +193,12 @@ def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_
             else:
                 break
 
-        next_image = sorted(candidate_images)[0][1]
-        row.append(next_image)
-        shortest_to_longest.remove(next_image)
+        if len(candidate_images) < 1:
+            row.append(shortest_to_longest.pop(0))
+        else:
+            next_image = sorted(candidate_images)[0][1]
+            row.append(next_image)
+            shortest_to_longest.remove(next_image)
 
     return row
 
