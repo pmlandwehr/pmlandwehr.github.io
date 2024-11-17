@@ -204,7 +204,17 @@ def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_
 
 
 def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int = 3) -> list[list[str|None]]:
+    """Generate the interior portions of a table of image names.
 
+    Parameters
+    ----------
+    images_per_row : int
+        Number of images to put in each row of the table
+
+    Returns
+    -------
+    list[list[str|None]]
+    """
     counter = 0
     rows = []
     while len(shortest_to_longest) > 0:
@@ -215,7 +225,7 @@ def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: i
 
 
 def generate_table_interior(shortest_to_longest: list[str], images_per_row: int) -> list[list[str|None]]:
-    """Generate a chunk of an HTML table based images in a directory of thumbnails and full images.
+    """Generate the interior portions of a table of image names.
 
     Parameters
     ----------
@@ -245,7 +255,7 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int)
 
 
 def generate_table(images_per_row: int) -> list[list[str|None]]:
-    """"""
+    """Generate a table of image names."""
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
