@@ -1,4 +1,12 @@
+# Ignore macOS stuff
 .DS_Store
 
 # Ignpore Jetbrains stuff
 .idea/
+
+# Ignore python stuff
+.pyc
+__pycache__/
+
+# Ignore ruff stuff
+.ruff_cache/
