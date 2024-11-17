@@ -13,6 +13,7 @@ RELATIVE_FULL = Path("images/full")
 
 _known_categories = {
     "art",
+    "babadook",
     "buttercup-festival",
     "chainsawsuit",
     "color",
