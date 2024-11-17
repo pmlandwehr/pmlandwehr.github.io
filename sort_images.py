@@ -145,6 +145,10 @@ def jaccard_similarity(key_one: str, key_two: str) -> float:
     second_categories = image_dict[key_two].categories
     return len(first_categories & second_categories) / len(first_categories | second_categories)
 
+@cache
+def height_delta(key_one: str, key_two: str) -> int:
+    return image_dict[key_one].thumbnail.height - image_dict[key_two].thumbnail.height
+
 
 # Recurse:
 # find largest or smallest
@@ -156,14 +160,13 @@ def row_getting_smaller(shortest_to_longest: list[str], images_per_row: int, max
     row = [shortest_to_longest.pop(-1)]
 
     while len(row) < images_per_row and len(shortest_to_longest) > 0:
+
         candidate_images = []
         for key in reversed(shortest_to_longest):
-            delta = image_dict[key].thumbnail.height - image_dict[row[-1]].thumbnail.height
-
-            if operator.le(delta, -max_pixel_diff):
+            if operator.le(height_delta(key, row[-1]), -max_pixel_diff):
                 candidate_images.append((0, key))
                 break
-            if operator.le(delta, max_pixel_diff):
+            if operator.le(height_delta(key, row[-1]), max_pixel_diff):
                 candidate_images.append((jaccard_similarity(row[-1], key), key))
             else:
                 break
@@ -185,11 +188,10 @@ def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_
 
         candidate_images = []
         for key in shortest_to_longest:
-            delta = image_dict[key].thumbnail.height - image_dict[row[-1]].thumbnail.height
-            if operator.ge(delta, -max_height_delta):
+            if operator.ge(height_delta(key, row[-1]), -max_height_delta):
                 candidate_images.append((0, key))
                 break
-            if operator.ge(delta, max_height_delta):
+            if operator.ge(height_delta(key, row[-1]), max_height_delta):
                 candidate_images.append((jaccard_similarity(row[-1], key), key))
             else:
                 break
