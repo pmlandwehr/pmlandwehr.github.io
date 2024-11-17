@@ -262,7 +262,7 @@ def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str|
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior(shortest_to_longest, images_per_row)
+    rows = generate_table_interior_v2(shortest_to_longest, images_per_row, max_height_delta)
 
     if len(rows[-1]) == images_per_row:
         rows.append([None] * (images_per_row -1) + ["butts"])
