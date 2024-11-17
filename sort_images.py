@@ -203,11 +203,13 @@ def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_
     return row
 
 
-def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int = 3) -> list[list[str|None]]:
+def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[list[str|None]]:
     """Generate the interior portions of a table of image names.
 
     Parameters
     ----------
+    shortest_to_longest: list[str]
+        Sorted list of image names
     images_per_row : int
         Number of images to put in each row of the table
 
@@ -224,7 +226,7 @@ def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: i
     return rows
 
 
-def generate_table_interior(shortest_to_longest: list[str], images_per_row: int) -> list[list[str|None]]:
+def generate_table_interior(shortest_to_longest: list[str], images_per_row: int, _: int) -> list[list[str|None]]:
     """Generate the interior portions of a table of image names.
 
     Parameters
@@ -254,7 +256,7 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int)
     return rows
 
 
-def generate_table(images_per_row: int) -> list[list[str|None]]:
+def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str|None]]:
     """Generate a table of image names."""
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
@@ -287,7 +289,8 @@ def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
-    parser.add_argument("images_per_row", nargs="?", help="Number of images per row", type=int, default=4)
+    parser.add_argument("--images_per_row", help="Number of images per row", type=int, default=4)
+    parser.add_argument("--max_height_delta", help="Maximum difference in height between images", type=int, default=5)
     args = parser.parse_args()
 
     for path in RELATIVE_THUMB, RELATIVE_FULL:
@@ -312,7 +315,7 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(table_to_str(generate_table(args.images_per_row)))
+    print(table_to_str(generate_table(args.images_per_row, args.max_height_delta)))
 
 
 if __name__ == "__main__":
