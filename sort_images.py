@@ -14,6 +14,7 @@ RELATIVE_FULL = Path("images/full")
 _known_categories = {
     "art",
     "babadook",
+    "blitt",
     "buttercup-festival",
     "chainsawsuit",
     "color",
@@ -25,6 +26,7 @@ _known_categories = {
     "mostly-black",
     "mostly-white",
     "naomi-wolf",
+    "new-yorker",
     "perry-bible-fellowship",
     "post",
     "sarahs-scribbles",
@@ -36,6 +38,7 @@ _known_categories = {
 _implied_categories = {
     "black-and-white": {"buttercup-festival", "chainsawsuit", "kelly", "sarahs-scribbles"},
     "comic": {
+        "blitt",
         "buttercup-festival",
         "chainsawsuit",
         "kelly",
