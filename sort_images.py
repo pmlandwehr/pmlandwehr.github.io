@@ -3,8 +3,8 @@
 import argparse
 import csv
 from functools import cache, cached_property
-import operator
 from pathlib import Path
+from typing import Callable
 
 from PIL import Image
 
@@ -156,57 +156,55 @@ def height_delta(key_one: str, key_two: str) -> int:
 # find furthest away image
 # repeat.
 
-def row_getting_smaller(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[str]:
-    row = [shortest_to_longest.pop(-1)]
 
-    while len(row) < images_per_row and len(shortest_to_longest) > 0:
+def extracted_row_of_images(
+    remaining_images_in_order: list[str],
+    images_per_row: int,
+    image_filters: list[Callable[[str, str], bool]]
+) -> list[str]:
+    """Extract the next row of images from the sorted list of remaining images.
 
-        candidate_images = []
-        for key in reversed(shortest_to_longest):
-            if operator.le(height_delta(key, row[-1]), -max_pixel_diff):
-                candidate_images.append((0, key))
-                break
-            if operator.le(height_delta(key, row[-1]), max_pixel_diff):
-                candidate_images.append((jaccard_similarity(row[-1], key), key))
-            else:
-                break
+    Parameters
+    ----------
+    remaining_images_in_order : list[str]
+        The remaining images to be collected into table rows, highest priority images first.
 
-        if len(candidate_images) < 1:
-            row.append(shortest_to_longest.pop(-1))
-        else:
-            next_image = sorted(candidate_images)[0][1]
-            row.append(next_image)
-            shortest_to_longest.remove(next_image)
+    images_per_row : int
+        The number of images to place in the new row.
 
-    return row
+    image_filters : list[Callable[[str, str], bool]]
+        List of image tests. All images passing the first filter should be evaluated before images passing the
+        second filter, etc.
 
+    """
+    row = [remaining_images_in_order.pop(0)]
 
-def row_getting_larger(shortest_to_longest: list[str], images_per_row: int, max_height_delta: int) -> list[str]:
-    row = [shortest_to_longest.pop(0)]
+    while len(row) < images_per_row and len(remaining_images_in_order) > 0:
 
-    while len(row) < images_per_row and len(shortest_to_longest) > 0:
+        next_image = remaining_images_in_order[0]
 
-        candidate_images = []
-        for key in shortest_to_longest:
-            if operator.ge(height_delta(key, row[-1]), -max_height_delta):
-                candidate_images.append((0, key))
-                break
-            if operator.ge(height_delta(key, row[-1]), max_height_delta):
-                candidate_images.append((jaccard_similarity(row[-1], key), key))
-            else:
-                break
+        for image_filter in image_filters:
 
-        if len(candidate_images) < 1:
-            row.append(shortest_to_longest.pop(0))
-        else:
-            next_image = sorted(candidate_images)[0][1]
-            row.append(next_image)
-            shortest_to_longest.remove(next_image)
+            candidate_images = []
+            for key in remaining_images_in_order:
+                if image_filter(row[-1], key):
+                    candidate_images.append(key)
+                else:
+                    break
+
+            if len(candidate_images) < 1:
+                continue
+
+            next_image = sorted(candidate_images, key=lambda x: jaccard_similarity(row[-1], x))[0]
+            break
+
+        row.append(next_image)
+        remaining_images_in_order.remove(next_image)
 
     return row
 
 
-def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[list[str|None]]:
+def generate_table_interior(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[list[str|None]]:
     """Generate the interior portions of a table of image names.
 
     Parameters
@@ -218,43 +216,38 @@ def generate_table_interior_v2(shortest_to_longest: list[str], images_per_row: i
 
     Returns
     -------
-    list[list[str|None]]
+    list[list[str]]
     """
     counter = 0
     rows = []
     while len(shortest_to_longest) > 0:
-        rows.append((row_getting_larger if counter % 2 == 0 else row_getting_smaller)(shortest_to_longest, images_per_row, max_pixel_diff))
+
+        if counter % 2 == 0:
+            rows.append(
+                extracted_row_of_images(
+                    shortest_to_longest,
+                    images_per_row,
+                    [
+                        lambda last_key, key: height_delta(key, last_key) < -max_pixel_diff,
+                        lambda last_key, key: height_delta(key, last_key) <= max_pixel_diff
+                    ]
+                )
+            )
+        else:
+            longest_to_shortest = list(reversed(shortest_to_longest))
+            rows.append(
+                extracted_row_of_images(
+                    longest_to_shortest,
+                    images_per_row,
+                    [
+                        lambda last_key, key: height_delta(last_key, key) < -max_pixel_diff,
+                        lambda last_key, key: height_delta(last_key, key) <= max_pixel_diff
+                    ]
+                )
+            )
+            shortest_to_longest = list(reversed(longest_to_shortest))
+
         counter += 1
-
-    return rows
-
-
-def generate_table_interior(shortest_to_longest: list[str], images_per_row: int, _: int) -> list[list[str|None]]:
-    """Generate the interior portions of a table of image names.
-
-    Parameters
-    ----------
-    images_per_row : int
-        Number of images to put in each row of the table
-
-    Returns
-    -------
-    list[list[str|None]]
-    """
-    rows = []
-    for left_of_left_ix, right_of_right_ix in zip(
-        range(0, len(shortest_to_longest), images_per_row), range(len(shortest_to_longest) - 1, -1, -images_per_row)
-    ):
-        if left_of_left_ix > right_of_right_ix:
-            break
-
-        right_of_left_ix = min(left_of_left_ix + images_per_row, right_of_right_ix)
-        left_of_right_ix = max(right_of_right_ix - images_per_row, right_of_left_ix)
-
-        for slicer in slice(left_of_left_ix, right_of_left_ix), slice(right_of_right_ix, left_of_right_ix, -1):
-            cur_slice = shortest_to_longest[slicer]
-            if len(cur_slice) > 0:
-                rows.append(cur_slice)
 
     return rows
 
@@ -265,7 +258,7 @@ def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str|
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior_v2(shortest_to_longest, images_per_row, max_height_delta)
+    rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_delta)
 
     if len(rows[-1]) == images_per_row:
         rows.append([None] * (images_per_row -1) + ["butts"])
