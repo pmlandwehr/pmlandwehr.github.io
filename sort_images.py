@@ -129,6 +129,7 @@ class ImageData:
             "</a></td>"
         )
 
+
 with open("metadata.csv") as infile:
     image_dict = {
         row["name"]: ImageData(row["name"], row["alt_text"], set(row["categories"].split(",")))
@@ -145,6 +146,7 @@ def jaccard_similarity(key_one: str, key_two: str) -> float:
     second_categories = image_dict[key_two].categories
     return len(first_categories & second_categories) / len(first_categories | second_categories)
 
+
 @cache
 def height_delta(key_one: str, key_two: str) -> int:
     return image_dict[key_one].thumbnail.height - image_dict[key_two].thumbnail.height
@@ -158,9 +160,7 @@ def height_delta(key_one: str, key_two: str) -> int:
 
 
 def extracted_row_of_images(
-    remaining_images_in_order: list[str],
-    images_per_row: int,
-    image_filters: list[Callable[[str, str], bool]]
+    remaining_images_in_order: list[str], images_per_row: int, image_filters: list[Callable[[str, str], bool]]
 ) -> list[str]:
     """Extract the next row of images from the sorted list of remaining images.
 
@@ -176,15 +176,18 @@ def extracted_row_of_images(
         List of image tests. All images passing the first filter should be evaluated before images passing the
         second filter, etc.
 
+    Returns
+    -------
+    list[str]
+        Row of images
+
     """
     row = [remaining_images_in_order.pop(0)]
 
     while len(row) < images_per_row and len(remaining_images_in_order) > 0:
-
         next_image = remaining_images_in_order[0]
 
         for image_filter in image_filters:
-
             candidate_images = []
             for key in remaining_images_in_order:
                 if image_filter(row[-1], key):
@@ -204,7 +207,9 @@ def extracted_row_of_images(
     return row
 
 
-def generate_table_interior(shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int) -> list[list[str|None]]:
+def generate_table_interior(
+    shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int
+) -> list[list[str | None]]:
     """Generate the interior portions of a table of image names.
 
     Parameters
@@ -221,7 +226,6 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int,
     counter = 0
     rows = []
     while len(shortest_to_longest) > 0:
-
         if counter % 2 == 0:
             rows.append(
                 extracted_row_of_images(
@@ -229,8 +233,8 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int,
                     images_per_row,
                     [
                         lambda last_key, key: height_delta(key, last_key) < -max_pixel_diff,
-                        lambda last_key, key: height_delta(key, last_key) <= max_pixel_diff
-                    ]
+                        lambda last_key, key: height_delta(key, last_key) <= max_pixel_diff,
+                    ],
                 )
             )
         else:
@@ -241,8 +245,8 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int,
                     images_per_row,
                     [
                         lambda last_key, key: height_delta(last_key, key) < -max_pixel_diff,
-                        lambda last_key, key: height_delta(last_key, key) <= max_pixel_diff
-                    ]
+                        lambda last_key, key: height_delta(last_key, key) <= max_pixel_diff,
+                    ],
                 )
             )
             shortest_to_longest = list(reversed(longest_to_shortest))
@@ -252,7 +256,7 @@ def generate_table_interior(shortest_to_longest: list[str], images_per_row: int,
     return rows
 
 
-def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str|None]]:
+def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str | None]]:
     """Generate a table of image names."""
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
@@ -261,20 +265,20 @@ def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str|
     rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_delta)
 
     if len(rows[-1]) == images_per_row:
-        rows.append([None] * (images_per_row -1) + ["butts"])
+        rows.append([None] * (images_per_row - 1) + ["butts"])
     else:
         rows[-1] = rows[-1] + [None] * (images_per_row - 1 - len(rows[-1])) + ["butts"]
 
     return rows
 
 
-def table_to_str(rows: list[list[str|None]]) -> str:
+def table_to_str(rows: list[list[str | None]]) -> str:
     """Convert a table of rows into an HTML table string."""
     html_strings = [8 * " " + "<table>"]
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
         for cell in row:
-            html_strings.append(16 * " " +  ("<td></td>" if cell is None else image_dict[cell].table_cell()))
+            html_strings.append(16 * " " + ("<td></td>" if cell is None else image_dict[cell].table_cell()))
         html_strings.append(12 * " " + "</tr>")
     html_strings.append(8 * " " + "</table>")
 
