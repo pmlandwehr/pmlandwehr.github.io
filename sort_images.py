@@ -36,7 +36,7 @@ _known_categories = {
 }
 
 _implied_categories = {
-    "black-and-white": {"buttercup-festival", "chainsawsuit", "kelly", "sarahs-scribbles"},
+    "black-and-white": {"buttercup-festival", "chainsawsuit", "kelly", "sarahs-scribbles", "xkcd"},
     "comic": {
         "blitt",
         "buttercup-festival",
@@ -45,6 +45,7 @@ _implied_categories = {
         "louder-and-smarter",
         "perry-bible-fellowship",
         "sarahs-scribbles",
+        "xkcd"
     },
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
