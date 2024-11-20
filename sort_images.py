@@ -45,7 +45,7 @@ _implied_categories = {
         "louder-and-smarter",
         "perry-bible-fellowship",
         "sarahs-scribbles",
-        "xkcd"
+        "xkcd",
     },
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
@@ -152,8 +152,9 @@ def jaccard_similarity(key_one: str, key_two: str) -> float:
 
 
 @cache
-def height_delta(key_one: str, key_two: str) -> int:
-    return image_dict[key_one].thumbnail.height - image_dict[key_two].thumbnail.height
+def height_difference(key_one: str, key_two: str) -> int:
+    """Return the height difference between two images."""
+    return image_dict[key_two].thumbnail.height - image_dict[key_one].thumbnail.height
 
 
 def extracted_row_of_images(
@@ -224,25 +225,27 @@ def generate_table_interior(
     rows = []
     while len(shortest_to_longest) > 0:
         if counter % 2 == 0:
+            # Add row that is roughly increasing in height, growing from shortest
             rows.append(
                 extracted_row_of_images(
                     shortest_to_longest,
                     images_per_row,
                     [
-                        lambda last_key, key: height_delta(key, last_key) < -max_pixel_diff,
-                        lambda last_key, key: height_delta(key, last_key) <= max_pixel_diff,
+                        lambda last_key, key: height_difference(last_key, key) < -max_pixel_diff,
+                        lambda last_key, key: height_difference(last_key, key) <= max_pixel_diff,
                     ],
                 )
             )
         else:
+            # Add row that is roughly decreasing in height, shrinking from longest
             longest_to_shortest = list(reversed(shortest_to_longest))
             rows.append(
                 extracted_row_of_images(
                     longest_to_shortest,
                     images_per_row,
                     [
-                        lambda last_key, key: height_delta(last_key, key) < -max_pixel_diff,
-                        lambda last_key, key: height_delta(last_key, key) <= max_pixel_diff,
+                        lambda last_key, key: height_difference(last_key, key) > max_pixel_diff,
+                        lambda last_key, key: height_difference(last_key, key) >= -max_pixel_diff,
                     ],
                 )
             )
@@ -253,13 +256,13 @@ def generate_table_interior(
     return rows
 
 
-def generate_table(images_per_row: int, max_height_delta: int) -> list[list[str | None]]:
+def generate_table(images_per_row: int, max_height_difference: int) -> list[list[str | None]]:
     """Generate a table of image names."""
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_delta)
+    rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_difference)
 
     if len(rows[-1]) == images_per_row:
         rows.append([None] * (images_per_row - 1) + ["butts"])
@@ -287,7 +290,9 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
     parser.add_argument("--images_per_row", help="Number of images per row", type=int, default=4)
-    parser.add_argument("--max_height_delta", help="Maximum difference in height between images", type=int, default=5)
+    parser.add_argument(
+        "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
+    )
     args = parser.parse_args()
 
     for path in RELATIVE_THUMB, RELATIVE_FULL:
@@ -312,7 +317,7 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(table_to_str(generate_table(args.images_per_row, args.max_height_delta)))
+    print(table_to_str(generate_table(args.images_per_row, args.max_height_difference)))
 
 
 if __name__ == "__main__":
