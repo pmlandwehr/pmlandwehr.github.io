@@ -156,13 +156,6 @@ def height_delta(key_one: str, key_two: str) -> int:
     return image_dict[key_one].thumbnail.height - image_dict[key_two].thumbnail.height
 
 
-# Recurse:
-# find largest or smallest
-# find next X images within y pixels (incl. all larger/smaller)
-# find furthest away image
-# repeat.
-
-
 def extracted_row_of_images(
     remaining_images_in_order: list[str], images_per_row: int, image_filters: list[Callable[[str, str], bool]]
 ) -> list[str]:
