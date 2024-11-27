@@ -29,6 +29,7 @@ _known_categories = {
     "new-yorker",
     "perry-bible-fellowship",
     "post",
+    "rose-mosco",
     "sarahs-scribbles",
     "text",
     "tumblr",
@@ -44,6 +45,7 @@ _implied_categories = {
         "kelly",
         "louder-and-smarter",
         "perry-bible-fellowship",
+        "rose-mosco",
         "sarahs-scribbles",
         "xkcd",
     },
@@ -57,7 +59,16 @@ _exclusive_categories = [
     {"color", "black-and-white"},
     {"mostly-black", "mostly-white"},
     {"image", "text"},
-    {"buttercup-festival", "chainsawsuit", "kelly", "louder-and-smarter", "perry-bible-fellowship", "sarahs-scribbles"},
+    {
+        "buttercup-festival",
+        "chainsawsuit",
+        "kelly",
+        "kreuger",
+        "louder-and-smarter",
+        "perry-bible-fellowship",
+        "rose-mosco",
+        "sarahs-scribbles"
+    },
     {"dril", "naomi-wolf"},
     {"twitter", "tumblr"},
 ]
