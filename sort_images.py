@@ -75,7 +75,12 @@ _exclusive_categories = [
 
 
 class ImageData:
-    """Wrapper for metadata about the different image files."""
+    """Wrapper for metadata about the different image files.
+    
+    "images" default to being "color" but can be set to "black-and-white"
+    "posts" default to being "text"
+
+    """
 
     def __init__(self, name: str, alt_text: str, categories: set[str]):
         self._name = name
