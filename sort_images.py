@@ -14,26 +14,7 @@ RELATIVE_FULL = Path("images/full")
 _known_categories = {
     "art",
     "babadook",
-    "blitt",
-    "buttercup-festival",
-    "chainsawsuit",
-    "color",
-    "comic",
-    "dril",
-    "image",
-    "kelly",
-    "louder-and-smarter",
-    "mostly-black",
-    "mostly-white",
-    "naomi-wolf",
     "new-yorker",
-    "perry-bible-fellowship",
-    "post",
-    "rose-mosco",
-    "sarahs-scribbles",
-    "text",
-    "tumblr",
-    "twitter",
 }
 
 _implied_categories = {
@@ -55,6 +36,10 @@ _implied_categories = {
     "twitter": {"dril", "naomi-wolf"},
 }
 
+for key, values in _implied_categories.items():
+    _known_categories.add(key)
+    _known_categories.update(values)
+
 _exclusive_categories = [
     {"color", "black-and-white"},
     {"mostly-black", "mostly-white"},
@@ -72,6 +57,9 @@ _exclusive_categories = [
     {"dril", "naomi-wolf"},
     {"twitter", "tumblr"},
 ]
+
+for categories in _exclusive_categories:
+    _known_categories.update(categories)
 
 
 class ImageData:
