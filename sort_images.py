@@ -96,6 +96,10 @@ class ImageData:
             if len(common) > 1:
                 raise ValueError(common)
 
+        unknown_categories = self.categories - _known_categories
+        if len(unknown_categories) > 0:
+            raise ValueError(unknown_categories)
+
         for path in self.full_path, self.thumbnail_path:
             if not path.is_file():
                 raise FileNotFoundError(path)
