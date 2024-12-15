@@ -174,7 +174,7 @@ def height_difference(key_one: str, key_two: str) -> int:
 
 
 def extracted_row_of_images(
-    remaining_images_in_order: list[str], images_per_row: int, image_filters: list[Callable[[str, str], bool]]
+    remaining_images_in_order: list[str], row_length: int, image_filters: list[Callable[[str, str], bool]]
 ) -> list[str]:
     """Extract the next row of images from the sorted list of remaining images.
 
@@ -183,7 +183,7 @@ def extracted_row_of_images(
     remaining_images_in_order : list[str]
         The remaining images to be collected into table rows, highest priority images first.
 
-    images_per_row : int
+    row_length : int
         The number of images to place in the new row.
 
     image_filters : list[Callable[[str, str], bool]]
@@ -198,7 +198,7 @@ def extracted_row_of_images(
     """
     row = [remaining_images_in_order.pop(0)]
 
-    while len(row) < images_per_row and len(remaining_images_in_order) > 0:
+    while len(row) < row_length and len(remaining_images_in_order) > 0:
         next_image = remaining_images_in_order[0]
 
         for image_filter in image_filters:
@@ -222,7 +222,7 @@ def extracted_row_of_images(
 
 
 def generate_table_interior(
-    shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int
+    shortest_to_longest: list[str], row_length: int, max_pixel_diff: int
 ) -> list[list[str | None]]:
     """Generate the interior portions of a table of image names.
 
@@ -230,7 +230,7 @@ def generate_table_interior(
     ----------
     shortest_to_longest: list[str]
         Sorted list of image names
-    images_per_row : int
+    row_length : int
         Number of images to put in each row of the table
 
     Returns
@@ -245,7 +245,7 @@ def generate_table_interior(
             rows.append(
                 extracted_row_of_images(
                     shortest_to_longest,
-                    images_per_row,
+                    row_length,
                     [
                         lambda last_key, key: height_difference(last_key, key) < -max_pixel_diff,
                         lambda last_key, key: height_difference(last_key, key) <= max_pixel_diff,
@@ -258,7 +258,7 @@ def generate_table_interior(
             rows.append(
                 extracted_row_of_images(
                     longest_to_shortest,
-                    images_per_row,
+                    row_length,
                     [
                         lambda last_key, key: height_difference(last_key, key) > max_pixel_diff,
                         lambda last_key, key: height_difference(last_key, key) >= -max_pixel_diff,
@@ -272,18 +272,18 @@ def generate_table_interior(
     return rows
 
 
-def generate_table(images_per_row: int, max_height_difference: int) -> list[list[str | None]]:
+def generate_table(row_length: int, max_height_difference: int) -> list[list[str | None]]:
     """Generate a table of image names."""
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_difference)
+    rows = generate_table_interior(shortest_to_longest, row_length, max_height_difference)
 
-    if len(rows[-1]) == images_per_row:
-        rows.append([None] * (images_per_row - 1) + ["butts"])
+    if len(rows[-1]) == row_length:
+        rows.append([None] * (row_length - 1) + ["butts"])
     else:
-        rows[-1] = rows[-1] + [None] * (images_per_row - 1 - len(rows[-1])) + ["butts"]
+        rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + ["butts"]
 
     return rows
 
@@ -305,7 +305,7 @@ def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
-    parser.add_argument("--images_per_row", help="Number of images per row", type=int, default=4)
+    parser.add_argument("--row_length", help="Number of images per row", type=int, default=4)
     parser.add_argument(
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
     )
@@ -333,7 +333,7 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(table_to_str(generate_table(args.images_per_row, args.max_height_difference)))
+    print(table_to_str(generate_table(args.row_length, args.max_height_difference)))
 
 
 if __name__ == "__main__":
