@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import Path
 from typing import Callable
@@ -33,11 +34,7 @@ _implied_categories = {
         "tom-gauld",
         "xkcd",
     },
-    "new-yorker": {
-        "barsotti",
-        "blitt",
-        "roz-chast"
-    },
+    "new-yorker": {"barsotti", "blitt", "roz-chast"},
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
     "text": {"dril"},
@@ -60,7 +57,7 @@ _exclusive_categories = [
         "louder-and-smarter",
         "perry-bible-fellowship",
         "rose-mosco",
-        "sarahs-scribbles"
+        "sarahs-scribbles",
     },
     {"dril", "naomi-wolf"},
     {"twitter", "tumblr"},
@@ -72,7 +69,7 @@ for categories in _exclusive_categories:
 
 class ImageData:
     """Wrapper for metadata about the different image files.
-    
+
     "images" default to being "color" but can be set to "black-and-white"
     "posts" default to being "text"
 
@@ -155,6 +152,24 @@ with open("metadata.csv") as infile:
         row["name"]: ImageData(row["name"], row["alt_text"], set(row["categories"].split(",")))
         for row in csv.DictReader(infile)
     }
+
+
+@dataclass(frozen=True)
+class Link:
+    url: str
+    text: str
+
+    @property
+    def n_lines(self):
+        return self.text.count("<br>") + 1
+
+    def table_cell(self) -> str:
+        return f'<a href="{self.url}">{self.text}</a>'
+
+
+with open("links.csv") as infile:
+    links = [Link(row["url"], row["text"]) for row in csv.DictReader(infile)]
+total_lines = sum(link.n_lines for link in links)
 
 
 @cache
@@ -272,13 +287,41 @@ def generate_table_interior(
     return rows
 
 
+def generate_link_lines(row_length: int) -> list[list[str]]:
+    """Generate a table of links."""
+    n_lines_per_row = int(total_lines // row_length)
+    row_blocks = [[]]
+    lines_in_chunk = 0
+    for link in links:
+        lines_in_chunk += link.n_lines
+        if lines_in_chunk > n_lines_per_row:
+            lines_in_chunk = 0
+            row_blocks.append([])
+        row_blocks[-1].append(link.table_cell())
+    return row_blocks
+
+
 def generate_table(row_length: int, max_height_difference: int) -> list[list[str | None]]:
-    """Generate a table of image names."""
+    """Generate a meta-table object
+
+    The first row is a list of links and each cell in the other rows is an image.
+
+    """
+    first_row = [[]]
+    n_lines_per_row = int(total_lines // row_length)
+    lines_in_chunk = 0
+    for link in links:
+        lines_in_chunk += link.n_lines
+        if lines_in_chunk > n_lines_per_row:
+            lines_in_chunk = 0
+            first_row.append([])
+        first_row[-1].append(link)
+
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior(shortest_to_longest, row_length, max_height_difference)
+    rows = [first_row] + generate_table_interior(shortest_to_longest, row_length, max_height_difference)
 
     if len(rows[-1]) == row_length:
         rows.append([None] * (row_length - 1) + ["butts"])
@@ -288,13 +331,22 @@ def generate_table(row_length: int, max_height_difference: int) -> list[list[str
     return rows
 
 
-def table_to_str(rows: list[list[str | None]]) -> str:
+def table_to_str(rows: list[list[list[Link] | str | None]]) -> str:
     """Convert a table of rows into an HTML table string."""
     html_strings = [8 * " " + "<table>"]
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
         for cell in row:
-            html_strings.append(16 * " " + ("<td></td>" if cell is None else image_dict[cell].table_cell()))
+            if cell is None:
+                html_strings.append(16 * " " + "<td></td>")
+            elif isinstance(cell, str):
+                html_strings.append(16 * " " + image_dict[cell].table_cell())
+            else:
+                html_strings.append(16 * " " + "<td>")
+                html_strings.append(20 * " " + cell[0].table_cell())
+                for link in cell[1:]:
+                    html_strings.append(20 * " " + "<br>" + link.table_cell())
+                html_strings.append(16 * " " + "</td>")
         html_strings.append(12 * " " + "</tr>")
     html_strings.append(8 * " " + "</table>")
 
@@ -305,7 +357,7 @@ def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
-    parser.add_argument("--row_length", help="Number of images per row", type=int, default=4)
+    parser.add_argument("--row_length", help="Number of objects per row", type=int, default=4)
     parser.add_argument(
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
     )
