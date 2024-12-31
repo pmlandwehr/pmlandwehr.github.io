@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+from dataclasses import dataclass
 from functools import cache, cached_property
 from pathlib import Path
 from typing import Callable
@@ -33,11 +34,7 @@ _implied_categories = {
         "tom-gauld",
         "xkcd",
     },
-    "new-yorker": {
-        "barsotti",
-        "blitt",
-        "roz-chast"
-    },
+    "new-yorker": {"barsotti", "blitt", "roz-chast"},
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
     "text": {"dril"},
@@ -60,7 +57,7 @@ _exclusive_categories = [
         "louder-and-smarter",
         "perry-bible-fellowship",
         "rose-mosco",
-        "sarahs-scribbles"
+        "sarahs-scribbles",
     },
     {"dril", "naomi-wolf"},
     {"twitter", "tumblr"},
@@ -72,7 +69,7 @@ for categories in _exclusive_categories:
 
 class ImageData:
     """Wrapper for metadata about the different image files.
-    
+
     "images" default to being "color" but can be set to "black-and-white"
     "posts" default to being "text"
 
@@ -157,6 +154,24 @@ with open("metadata.csv") as infile:
     }
 
 
+@dataclass(frozen=True)
+class Link:
+    url: str
+    text: str
+
+    @property
+    def n_lines(self):
+        return self.text.count("<br>") + 1
+
+    def table_cell(self) -> str:
+        return f'<a href="{self.url}">{self.text}</a>'
+
+
+with open("links.csv") as infile:
+    links = [Link(row["url"], row["text"]) for row in csv.DictReader(infile)]
+total_lines = sum(link.n_lines for link in links)
+
+
 @cache
 def jaccard_similarity(key_one: str, key_two: str) -> float:
     """Calculate the Jaccard similarity of two images based on metadata categories."""
@@ -174,7 +189,7 @@ def height_difference(key_one: str, key_two: str) -> int:
 
 
 def extracted_row_of_images(
-    remaining_images_in_order: list[str], images_per_row: int, image_filters: list[Callable[[str, str], bool]]
+    remaining_images_in_order: list[str], row_length: int, image_filters: list[Callable[[str, str], bool]]
 ) -> list[str]:
     """Extract the next row of images from the sorted list of remaining images.
 
@@ -183,7 +198,7 @@ def extracted_row_of_images(
     remaining_images_in_order : list[str]
         The remaining images to be collected into table rows, highest priority images first.
 
-    images_per_row : int
+    row_length : int
         The number of images to place in the new row.
 
     image_filters : list[Callable[[str, str], bool]]
@@ -198,7 +213,7 @@ def extracted_row_of_images(
     """
     row = [remaining_images_in_order.pop(0)]
 
-    while len(row) < images_per_row and len(remaining_images_in_order) > 0:
+    while len(row) < row_length and len(remaining_images_in_order) > 0:
         next_image = remaining_images_in_order[0]
 
         for image_filter in image_filters:
@@ -222,7 +237,7 @@ def extracted_row_of_images(
 
 
 def generate_table_interior(
-    shortest_to_longest: list[str], images_per_row: int, max_pixel_diff: int
+    shortest_to_longest: list[str], row_length: int, max_pixel_diff: int
 ) -> list[list[str | None]]:
     """Generate the interior portions of a table of image names.
 
@@ -230,7 +245,7 @@ def generate_table_interior(
     ----------
     shortest_to_longest: list[str]
         Sorted list of image names
-    images_per_row : int
+    row_length : int
         Number of images to put in each row of the table
 
     Returns
@@ -245,7 +260,7 @@ def generate_table_interior(
             rows.append(
                 extracted_row_of_images(
                     shortest_to_longest,
-                    images_per_row,
+                    row_length,
                     [
                         lambda last_key, key: height_difference(last_key, key) < -max_pixel_diff,
                         lambda last_key, key: height_difference(last_key, key) <= max_pixel_diff,
@@ -258,7 +273,7 @@ def generate_table_interior(
             rows.append(
                 extracted_row_of_images(
                     longest_to_shortest,
-                    images_per_row,
+                    row_length,
                     [
                         lambda last_key, key: height_difference(last_key, key) > max_pixel_diff,
                         lambda last_key, key: height_difference(last_key, key) >= -max_pixel_diff,
@@ -272,29 +287,66 @@ def generate_table_interior(
     return rows
 
 
-def generate_table(images_per_row: int, max_height_difference: int) -> list[list[str | None]]:
-    """Generate a table of image names."""
+def generate_link_lines(row_length: int) -> list[list[str]]:
+    """Generate a table of links."""
+    n_lines_per_row = int(total_lines // row_length)
+    row_blocks = [[]]
+    lines_in_chunk = 0
+    for link in links:
+        lines_in_chunk += link.n_lines
+        if lines_in_chunk > n_lines_per_row:
+            lines_in_chunk = 0
+            row_blocks.append([])
+        row_blocks[-1].append(link.table_cell())
+    return row_blocks
+
+
+def generate_table(row_length: int, max_height_difference: int) -> list[list[str | None]]:
+    """Generate a meta-table object
+
+    The first row is a list of links and each cell in the other rows is an image.
+
+    """
+    first_row = [[]]
+    n_lines_per_row = int(total_lines // row_length)
+    lines_in_chunk = 0
+    for link in links:
+        lines_in_chunk += link.n_lines
+        if lines_in_chunk > n_lines_per_row:
+            lines_in_chunk = 0
+            first_row.append([])
+        first_row[-1].append(link)
+
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = generate_table_interior(shortest_to_longest, images_per_row, max_height_difference)
+    rows = [first_row] + generate_table_interior(shortest_to_longest, row_length, max_height_difference)
 
-    if len(rows[-1]) == images_per_row:
-        rows.append([None] * (images_per_row - 1) + ["butts"])
+    if len(rows[-1]) == row_length:
+        rows.append([None] * (row_length - 1) + ["butts"])
     else:
-        rows[-1] = rows[-1] + [None] * (images_per_row - 1 - len(rows[-1])) + ["butts"]
+        rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + ["butts"]
 
     return rows
 
 
-def table_to_str(rows: list[list[str | None]]) -> str:
+def table_to_str(rows: list[list[list[Link] | str | None]]) -> str:
     """Convert a table of rows into an HTML table string."""
     html_strings = [8 * " " + "<table>"]
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
         for cell in row:
-            html_strings.append(16 * " " + ("<td></td>" if cell is None else image_dict[cell].table_cell()))
+            if cell is None:
+                html_strings.append(16 * " " + "<td></td>")
+            elif isinstance(cell, str):
+                html_strings.append(16 * " " + image_dict[cell].table_cell())
+            else:
+                html_strings.append(16 * " " + "<td>")
+                html_strings.append(20 * " " + cell[0].table_cell())
+                for link in cell[1:]:
+                    html_strings.append(20 * " " + "<br>" + link.table_cell())
+                html_strings.append(16 * " " + "</td>")
         html_strings.append(12 * " " + "</tr>")
     html_strings.append(8 * " " + "</table>")
 
@@ -305,7 +357,7 @@ def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
-    parser.add_argument("--images_per_row", help="Number of images per row", type=int, default=4)
+    parser.add_argument("--row_length", help="Number of objects per row", type=int, default=4)
     parser.add_argument(
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
     )
@@ -333,7 +385,7 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(table_to_str(generate_table(args.images_per_row, args.max_height_difference)))
+    print(table_to_str(generate_table(args.row_length, args.max_height_difference)))
 
 
 if __name__ == "__main__":
