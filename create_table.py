@@ -4,6 +4,7 @@ import argparse
 import csv
 from dataclasses import dataclass
 from functools import cache, cached_property
+import math
 from pathlib import Path
 from typing import Callable, Iterator
 
@@ -291,17 +292,27 @@ def generate_table_interior(
 
 
 def link_cells(row_length: int) -> Iterator[tuple[Link, ...]]:
-    """Given a row length, yield list of links chunked by total number of lines."""
+    """Given a row length, yield list of links chunked by total number of lines.
+
+    A link row consists of cells with a certain number of lines. Our goal is a roughly even
+    number of lines in each cell across the row.
+
+    """
     if len(links) < 1:
         return tuple()
 
-    n_lines_per_row = int(total_lines // row_length)
+    remaining_lines = total_lines
+    remaining_cells = row_length
+    n_lines_in_current_cell = math.ceil(remaining_lines / remaining_cells)
     links_iter = iter(links)
     cell = [next(links_iter)]
     lines_in_cell = cell[0].n_lines
     for link in links_iter:
-        if lines_in_cell + link.n_lines > n_lines_per_row:
+        if lines_in_cell + link.n_lines > n_lines_in_current_cell:
             yield tuple(cell)
+            remaining_lines -= lines_in_cell
+            remaining_cells -= 1
+            n_lines_in_current_cell = math.ceil(remaining_lines / max(remaining_cells, 1))
             cell = [link]
             lines_in_cell = cell[-1].n_lines
         else:
