@@ -4,8 +4,9 @@ import argparse
 import csv
 from dataclasses import dataclass
 from functools import cache, cached_property
+import math
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 from PIL import Image
 
@@ -167,9 +168,12 @@ class Link:
         return f'<a href="{self.url}">{self.text}</a>'
 
 
+total_lines = 0
+links = []
 with open("links.csv") as infile:
-    links = [Link(row["url"], row["text"]) for row in csv.DictReader(infile)]
-total_lines = sum(link.n_lines for link in links)
+    for row in csv.DictReader(infile):
+        links.append(Link(row["url"], row["text"]))
+        total_lines += links[-1].n_lines
 
 
 @cache
@@ -287,18 +291,35 @@ def generate_table_interior(
     return rows
 
 
-def generate_link_lines(row_length: int) -> list[list[str]]:
-    """Generate a table of links."""
-    n_lines_per_row = int(total_lines // row_length)
-    row_blocks = [[]]
-    lines_in_chunk = 0
-    for link in links:
-        lines_in_chunk += link.n_lines
-        if lines_in_chunk > n_lines_per_row:
-            lines_in_chunk = 0
-            row_blocks.append([])
-        row_blocks[-1].append(link.table_cell())
-    return row_blocks
+def link_cells(row_length: int) -> Iterator[tuple[Link, ...]]:
+    """Given a row length, yield list of links chunked by total number of lines.
+
+    A link row consists of cells with a certain number of lines. Our goal is a roughly even
+    number of lines in each cell across the row.
+
+    """
+    if len(links) < 1:
+        return tuple()
+
+    remaining_lines = total_lines
+    remaining_cells = row_length
+    n_lines_in_current_cell = math.ceil(remaining_lines / remaining_cells)
+    links_iter = iter(links)
+    cell = [next(links_iter)]
+    lines_in_cell = cell[0].n_lines
+    for link in links_iter:
+        if lines_in_cell + link.n_lines > n_lines_in_current_cell:
+            yield tuple(cell)
+            remaining_lines -= lines_in_cell
+            remaining_cells -= 1
+            n_lines_in_current_cell = math.ceil(remaining_lines / max(remaining_cells, 1))
+            cell = [link]
+            lines_in_cell = cell[-1].n_lines
+        else:
+            cell.append(link)
+            lines_in_cell += cell[-1].n_lines
+    if len(cell) > 0:
+        yield tuple(cell)
 
 
 def generate_table(row_length: int, max_height_difference: int) -> list[list[str | None]]:
@@ -307,15 +328,7 @@ def generate_table(row_length: int, max_height_difference: int) -> list[list[str
     The first row is a list of links and each cell in the other rows is an image.
 
     """
-    first_row = [[]]
-    n_lines_per_row = int(total_lines // row_length)
-    lines_in_chunk = 0
-    for link in links:
-        lines_in_chunk += link.n_lines
-        if lines_in_chunk > n_lines_per_row:
-            lines_in_chunk = 0
-            first_row.append([])
-        first_row[-1].append(link)
+    first_row = list(link_cells(row_length))
 
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
