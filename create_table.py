@@ -170,7 +170,7 @@ class Link:
 
 
 all_links = {}
-for path in Path("links").glob("*.csv"):
+for path in sorted(Path("links").glob("*.csv")):
     all_links[path.name[: -len(".csv")]] = [Link(row["url"], row["text"]) for row in csv.DictReader(path.open("r"))]
 
 
