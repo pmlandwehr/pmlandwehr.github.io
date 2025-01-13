@@ -334,17 +334,15 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
 
     html_strings = [8 * " " + "<table>"]
     for key, links in all_links.items():
-        html_strings.append(table_header_row(key.capitalize().replace("_", " ")))
         html_strings.append(12 * " " + "<tr>")
-        for cells in link_cells(links, row_length):
+        html_strings.append(16 * " " + f"<td><strong>{key.capitalize().replace('_', ' ')}</strong></td>")
+        for cells in link_cells(links, row_length-1):
             html_strings.append(16 * " " + "<td>")
             html_strings.append(20 * " " + cells[0].table_cell())
             for cell in cells[1:]:
                 html_strings.append(20 * " " + "<br>" + cell.table_cell())
             html_strings.append(16 * " " + "</td>")
         html_strings.append(12 * " " + "</tr>")
-
-    html_strings.append(table_header_row("Images"))
 
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
@@ -374,6 +372,9 @@ def main() -> None:
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
     )
     args = parser.parse_args()
+
+    if args.row_length < 2:
+        raise ValueError(args.row_length)
 
     for path in RELATIVE_THUMB, RELATIVE_FULL:
         if not path.exists():
