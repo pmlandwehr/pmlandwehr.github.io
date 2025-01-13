@@ -325,6 +325,7 @@ def link_cells(links: list[Link], row_length: int) -> Iterator[tuple[Link, ...]]
 def table_header_row(header: str) -> str:
     return 12 * " " + f"<tr><td><strong>{header}</strong></td></tr>"
 
+
 def generate_table(row_length: int, max_height_difference: int) -> str:
     """Generate a meta-table object
 
@@ -357,11 +358,7 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
 
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
-        for cell in row:
-            if cell is None:
-                html_strings.append(16 * " " + "<td></td>")
-            else:
-                html_strings.append(16 * " " + image_dict[cell].table_cell())
+        html_strings += [16 * " " + ("<td></td>" if cell is None else image_dict[cell].table_cell()) for cell in row]
         html_strings.append(12 * " " + "</tr>")
 
     html_strings.append(8 * " " + "</table>")
