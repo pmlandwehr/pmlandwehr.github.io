@@ -319,47 +319,45 @@ def link_cells(links: list[Link], row_length: int) -> Iterator[tuple[Link, ...]]
         yield tuple(cell)
 
 
-def generate_table(row_length: int, max_height_difference: int) -> list[list[str | None]]:
+def generate_table(row_length: int, max_height_difference: int) -> str:
     """Generate a meta-table object
 
     The first row is a list of links and each cell in the other rows is an image.
 
     """
-    rows = [list(link_cells(links, row_length)) for links in all_links.values()]
+
+    html_strings = [8 * " " + "<table>"]
+    for key, links in all_links.items():
+        html_strings.append(12 * " " + f"<tr><td><em>{key}</em></td></tr>")
+        html_strings.append(12 * " " + "<tr>")
+        for cells in link_cells(links, row_length):
+            html_strings.append(16 * " " + "<td>")
+            html_strings.append(20 * " " + cells[0].table_cell())
+            for cell in cells[1:]:
+                html_strings.append(20 * " " + "<br>" + cell.table_cell())
+            html_strings.append(16 * " " + "</td>")
+        html_strings.append(12 * " " + "</tr>")
 
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows += generate_table_interior(shortest_to_longest, row_length, max_height_difference)
-
+    rows = generate_table_interior(shortest_to_longest, row_length, max_height_difference)
     if len(rows[-1]) == row_length:
         rows.append([None] * (row_length - 1) + ["butts"])
     else:
         rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + ["butts"]
 
-    return rows
-
-
-def table_to_str(rows: list[list[list[Link] | str | None]]) -> str:
-    """Convert a table of rows into an HTML table string."""
-    html_strings = [8 * " " + "<table>"]
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
         for cell in row:
             if cell is None:
                 html_strings.append(16 * " " + "<td></td>")
-            elif isinstance(cell, str):
-                html_strings.append(16 * " " + image_dict[cell].table_cell())
             else:
-                html_strings.append(16 * " " + "<td>")
-                html_strings.append(20 * " " + cell[0].table_cell())
-                for link in cell[1:]:
-                    html_strings.append(20 * " " + "<br>" + link.table_cell())
-                html_strings.append(16 * " " + "</td>")
+                html_strings.append(16 * " " + image_dict[cell].table_cell())
         html_strings.append(12 * " " + "</tr>")
-    html_strings.append(8 * " " + "</table>")
 
+    html_strings.append(8 * " " + "</table>")
     return "\n".join(html_strings)
 
 
@@ -395,7 +393,7 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(table_to_str(generate_table(args.row_length, args.max_height_difference)))
+    print(generate_table(args.row_length, args.max_height_difference))
 
 
 if __name__ == "__main__":
