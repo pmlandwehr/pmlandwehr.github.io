@@ -168,12 +168,9 @@ class Link:
         return f'<a href="{self.url}">{self.text}</a>'
 
 
-total_lines = 0
-links = []
-with open("links.csv") as infile:
-    for row in csv.DictReader(infile):
-        links.append(Link(row["url"], row["text"]))
-        total_lines += links[-1].n_lines
+all_links = {}
+for path in Path("links").glob("*.csv"):
+    all_links[path.name[: -len(".csv")]] = [Link(row["url"], row["text"]) for row in csv.DictReader(path.open("r"))]
 
 
 @cache
@@ -291,7 +288,7 @@ def generate_table_interior(
     return rows
 
 
-def link_cells(row_length: int) -> Iterator[tuple[Link, ...]]:
+def link_cells(links: list[Link], row_length: int) -> Iterator[tuple[Link, ...]]:
     """Given a row length, yield list of links chunked by total number of lines.
 
     A link row consists of cells with a certain number of lines. Our goal is a roughly even
@@ -301,7 +298,7 @@ def link_cells(row_length: int) -> Iterator[tuple[Link, ...]]:
     if len(links) < 1:
         return tuple()
 
-    remaining_lines = total_lines
+    remaining_lines = sum(link.n_lines for link in links)
     remaining_cells = row_length
     n_lines_in_current_cell = math.ceil(remaining_lines / remaining_cells)
     links_iter = iter(links)
@@ -328,13 +325,13 @@ def generate_table(row_length: int, max_height_difference: int) -> list[list[str
     The first row is a list of links and each cell in the other rows is an image.
 
     """
-    first_row = list(link_cells(row_length))
+    rows = [list(link_cells(links, row_length)) for links in all_links.values()]
 
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
     )
 
-    rows = [first_row] + generate_table_interior(shortest_to_longest, row_length, max_height_difference)
+    rows += generate_table_interior(shortest_to_longest, row_length, max_height_difference)
 
     if len(rows[-1]) == row_length:
         rows.append([None] * (row_length - 1) + ["butts"])
