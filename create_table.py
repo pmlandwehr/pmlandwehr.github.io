@@ -25,6 +25,7 @@ _implied_categories = {
         "barsotti",
         "blitt",
         "buttercup-festival",
+        "cat-and-girl",
         "chainsawsuit",
         "kelly",
         "louder-and-smarter",
