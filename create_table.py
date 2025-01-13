@@ -64,8 +64,8 @@ _exclusive_categories = [
     {"twitter", "tumblr"},
 ]
 
-for categories in _exclusive_categories:
-    _known_categories.update(categories)
+for _exclusive_category in _exclusive_categories:
+    _known_categories.update(_exclusive_category)
 
 
 class ImageData:
