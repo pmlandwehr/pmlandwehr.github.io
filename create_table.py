@@ -329,7 +329,7 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
 
     html_strings = [8 * " " + "<table>"]
     for key, links in all_links.items():
-        html_strings.append(12 * " " + f"<tr><td><em>{key}</em></td></tr>")
+        html_strings.append(12 * " " + f"<tr><td><em>{key.capitalize().replace('_', ' ')}</em></td></tr>")
         html_strings.append(12 * " " + "<tr>")
         for cells in link_cells(links, row_length):
             html_strings.append(16 * " " + "<td>")
