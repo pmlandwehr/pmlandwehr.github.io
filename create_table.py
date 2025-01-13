@@ -248,6 +248,8 @@ def generate_table_interior(
         Sorted list of image names
     row_length : int
         Number of images to put in each row of the table
+    max_pixel_diff: int
+        Maximum height differences for sorting
 
     Returns
     -------
@@ -323,7 +325,6 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
     """Generate a meta-table object
 
     The first row is a list of links and each cell in the other rows is an image.
-
     """
 
     html_strings = [8 * " " + "<table>"]
