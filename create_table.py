@@ -322,6 +322,9 @@ def link_cells(links: list[Link], row_length: int) -> Iterator[tuple[Link, ...]]
         yield tuple(cell)
 
 
+def table_header_row(header: str) -> str:
+    return 12 * " " + f"<tr><td><strong>{header}</strong></td></tr>"
+
 def generate_table(row_length: int, max_height_difference: int) -> str:
     """Generate a meta-table object
 
@@ -330,7 +333,7 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
 
     html_strings = [8 * " " + "<table>"]
     for key, links in all_links.items():
-        html_strings.append(12 * " " + f"<tr><td><em>{key.capitalize().replace('_', ' ')}</em></td></tr>")
+        html_strings.append(table_header_row(key.capitalize().replace("_", " ")))
         html_strings.append(12 * " " + "<tr>")
         for cells in link_cells(links, row_length):
             html_strings.append(16 * " " + "<td>")
@@ -339,6 +342,8 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
                 html_strings.append(20 * " " + "<br>" + cell.table_cell())
             html_strings.append(16 * " " + "</td>")
         html_strings.append(12 * " " + "</tr>")
+
+    html_strings.append(table_header_row("Images"))
 
     shortest_to_longest = sorted(
         [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
