@@ -326,17 +326,25 @@ def table_header_row(header: str) -> str:
     return 12 * " " + f"<tr><td><strong>{header}</strong></td></tr>"
 
 
-def generate_table(row_length: int, max_height_difference: int) -> str:
-    """Generate a meta-table object
+def generate_page(row_length: int, max_height_difference: int) -> str:
+    """Generate the web page."""
 
-    The first row is a list of links and each cell in the other rows is an image.
-    """
-
-    html_strings = [8 * " " + "<table>"]
+    html_strings = [
+        "<!DOCTYPE html>",
+        "<html>",
+        "<head>",
+        4 * " " + '<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible" rel="stylesheet">',
+        4 * " " + '<link href="style.css" rel="stylesheet" type="text/css">',
+        4 * " " + "<title>A table relaxes the eyes</title>",
+        "</head>",
+        "<body>",
+        4 * " " + '<div class="text">',
+        8 * " " + "<table>",
+    ]
     for key, links in all_links.items():
         html_strings.append(12 * " " + "<tr>")
         html_strings.append(16 * " " + f"<td><strong>{key.capitalize().replace('_', ' ')}</strong></td>")
-        for cells in link_cells(links, row_length-1):
+        for cells in link_cells(links, row_length - 1):
             html_strings.append(16 * " " + "<td>")
             html_strings.append(20 * " " + cells[0].table_cell())
             for cell in cells[1:]:
@@ -360,6 +368,10 @@ def generate_table(row_length: int, max_height_difference: int) -> str:
         html_strings.append(12 * " " + "</tr>")
 
     html_strings.append(8 * " " + "</table>")
+    html_strings.append(4 * " " + "</div>")
+    html_strings.append("</body>")
+    html_strings.append("</html>")
+
     return "\n".join(html_strings)
 
 
@@ -367,7 +379,7 @@ def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
-    parser.add_argument("--row_length", help="Number of objects per row", type=int, default=4)
+    parser.add_argument("--row_length", help="Number of objects per row", type=int, default=5)
     parser.add_argument(
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
     )
@@ -398,7 +410,9 @@ def main() -> None:
     for key in missing_image_dict_names:
         del image_dict[key]
 
-    print(generate_table(args.row_length, args.max_height_difference))
+    with open("index.html", "w") as outfile:
+        outfile.write(generate_page(args.row_length, args.max_height_difference))
+        outfile.write("\n")
 
 
 if __name__ == "__main__":
