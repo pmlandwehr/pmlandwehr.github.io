@@ -343,7 +343,7 @@ def generate_page(row_length: int, max_height_difference: int) -> str:
     ]
     for key, links in all_links.items():
         html_strings.append(12 * " " + "<tr>")
-        html_strings.append(16 * " " + f"<td><strong>{key.capitalize().replace('_', ' ')}</strong></td>")
+        html_strings.append(16 * " " + f"<td><strong>{' '.join([word.capitalize() for word in key.split('_')])}</strong></td>")
         for cells in link_cells(links, row_length - 1):
             html_strings.append(16 * " " + "<td>")
             html_strings.append(20 * " " + cells[0].table_cell())
