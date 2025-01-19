@@ -220,9 +220,9 @@ def extracted_row_of_images(
 
         for image_filter in image_filters:
             candidate_images = []
-            for key in remaining_images_in_order:
-                if image_filter(row[-1], key):
-                    candidate_images.append(key)
+            for remaining_image_in_order in remaining_images_in_order:
+                if image_filter(row[-1], remaining_image_in_order):
+                    candidate_images.append(remaining_image_in_order)
                 else:
                     break
 
