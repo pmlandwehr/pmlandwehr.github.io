@@ -39,7 +39,8 @@ _implied_categories = {
     "new-yorker": {"barsotti", "blitt", "roz-chast"},
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
-    "text": {"dril"},
+    "text": {"dril", "hughes"},
+    "poem": {"hughes"},
     "twitter": {"dril", "naomi-wolf"},
 }
 
