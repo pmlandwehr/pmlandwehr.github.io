@@ -177,12 +177,26 @@ for path in sorted(Path("links").glob("*.csv")):
 
 
 @cache
-def jaccard_similarity(key_one: str, key_two: str) -> float:
-    """Calculate the Jaccard similarity of two images based on metadata categories."""
-    if key_one > key_two:
-        return jaccard_similarity(key_two, key_one)
-    first_categories = image_dict[key_one].categories
-    second_categories = image_dict[key_two].categories
+def jaccard_similarity(*args) -> float:
+    """Calculate the Jaccard similarity of images based on metadata categories.
+
+    1 indicates two images have identical categories.
+    0 indicates two images have no common categories.
+
+    If more than two items are provided, the pairwise similarity of all items will be returned.
+
+    """
+    if len(args) < 2:
+        raise ValueError(len(args))
+
+    if len(args) > 2:
+        return sum(jaccard_similarity(arg_one, arg_two) for arg_one, arg_two in zip(args[:-1], args[1:]))
+
+    arg_one, arg_two = args
+    if arg_one > arg_two:
+        return jaccard_similarity(arg_two, arg_one)
+    first_categories = image_dict[arg_one].categories
+    second_categories = image_dict[arg_two].categories
     return len(first_categories & second_categories) / len(first_categories | second_categories)
 
 
