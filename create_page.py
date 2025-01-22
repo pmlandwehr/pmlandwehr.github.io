@@ -399,17 +399,10 @@ def main() -> None:
     thumbnail_names = {path.stem for path in thumbnail_png_paths}
     full_names = {path.stem for path in full_png_paths}
     image_dict_names = set(image_dict.keys())
-    missing_image_dict_names = set()
 
-    for name, image_names in [("thumbnail", thumbnail_names), ("full", full_names)]:
-        for image_name in image_names - image_dict_names:
-            print(f"Missing {name} metadata: {image_name}")
-        for image_name in image_dict_names - image_names:
-            print(f"Missing {name} file: {image_name}")
-            missing_image_dict_names.add(image_name)
-
-    for key in missing_image_dict_names:
-        del image_dict[key]
+    missing_image_sets = tuple(sorted(image_names - image_dict_names) for image_names in (thumbnail_names, full_names))
+    if any(len(missing_image_set) > 0 for missing_image_set in missing_image_sets):
+        raise ValueError(missing_image_sets)
 
     with open("index.html", "w") as outfile:
         outfile.write(generate_page(args.row_length, args.max_height_difference))
