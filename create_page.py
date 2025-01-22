@@ -257,37 +257,27 @@ def generate_table_interior(
     -------
     list[list[str]]
     """
-    counter = 0
+    image_filters = {
+        "increasing": [
+                lambda prev_key, cur_key: height_difference(prev_key, cur_key) < -max_pixel_diff,
+                lambda prev_key, cur_key: height_difference(prev_key, cur_key) <= max_pixel_diff
+            ],
+        "decreasing": [
+            lambda prev_key, cur_key: height_difference(prev_key, cur_key) > max_pixel_diff,
+            lambda prev_key, cur_key: height_difference(prev_key, cur_key) >= -max_pixel_diff
+        ]
+    }
+
     rows = []
     while len(shortest_to_longest) > 0:
-        if counter % 2 == 0:
+        if len(rows) % 2 == 0:
             # Add row that is roughly increasing in height, growing from shortest
-            rows.append(
-                extracted_row_of_images(
-                    shortest_to_longest,
-                    row_length,
-                    [
-                        lambda last_key, key: height_difference(last_key, key) < -max_pixel_diff,
-                        lambda last_key, key: height_difference(last_key, key) <= max_pixel_diff,
-                    ],
-                )
-            )
+            rows.append(extracted_row_of_images(shortest_to_longest, row_length, image_filters["increasing"]))
         else:
             # Add row that is roughly decreasing in height, shrinking from longest
             longest_to_shortest = list(reversed(shortest_to_longest))
-            rows.append(
-                extracted_row_of_images(
-                    longest_to_shortest,
-                    row_length,
-                    [
-                        lambda last_key, key: height_difference(last_key, key) > max_pixel_diff,
-                        lambda last_key, key: height_difference(last_key, key) >= -max_pixel_diff,
-                    ],
-                )
-            )
+            rows.append(extracted_row_of_images(longest_to_shortest, row_length, image_filters["decreasing"]))
             shortest_to_longest = list(reversed(longest_to_shortest))
-
-        counter += 1
 
     return rows
 
