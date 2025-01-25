@@ -150,6 +150,11 @@ class ImageData:
             "</a></td>"
         )
 
+    def __sub__(self, other) -> int:
+        """Return the difference in height between this image and another image."""
+        if not isinstance(other, ImageData):
+            return NotImplemented
+        return self.thumbnail.height - other.thumbnail.height
 
 with open("metadata.csv") as infile:
     image_dict = {
