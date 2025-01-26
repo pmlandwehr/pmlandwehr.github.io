@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from functools import cache, cached_property
 import math
 from pathlib import Path
-from typing import Callable, Iterator
+from typing import Callable, Iterator, TypeVar
 
 from PIL import Image
 
@@ -71,6 +71,9 @@ for _exclusive_category in _exclusive_categories:
     _known_categories.update(_exclusive_category)
 
 
+ImageDataType = TypeVar("ImageDataType")
+
+
 class ImageData:
     """Wrapper for metadata about the different image files.
 
@@ -79,8 +82,9 @@ class ImageData:
 
     """
 
-    def __init__(self, name: str, alt_text: str, categories: set[str]):
-        self._name = name
+    def __init__(self, thumbnail_path: Path, full_path: Path, alt_text: str, categories: set[str]):
+        self._thumbnail_path = thumbnail_path
+        self._full_path = full_path
         self._alt_text = alt_text
         self._categories = categories
 
@@ -106,6 +110,15 @@ class ImageData:
             if not path.is_file():
                 raise FileNotFoundError(path)
 
+    def __repr__(self) -> str:
+        """Return a string representation of the object sufficient to recreate it."""
+        return f"ImageData({self.thumbnail_path!r}, {self.full_path!r}, {self.alt_text!r}, {self.categories!r})"
+
+    @property
+    def name(self):
+        """Return the name of the image."""
+        return self.thumbnail_path.stem
+
     def add_implied_categories(self) -> bool:
         """Try to add implied categories, returning True if successful."""
         success = False
@@ -118,12 +131,8 @@ class ImageData:
         return success
 
     @cached_property
-    def thumbnail(self):
+    def thumbnail(self) -> Image:
         return Image.open(self.thumbnail_path)
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     def alt_text(self) -> str:
@@ -134,33 +143,28 @@ class ImageData:
         return self._categories
 
     @property
-    def full_path(self):
+    def full_path(self) -> Path:
         """Return the path to the thumbnail image."""
-        return RELATIVE_FULL / (self.name + ".png")
+        return self._full_path
 
     @property
-    def thumbnail_path(self):
+    def thumbnail_path(self) -> Path:
         """Return the path to the thumbnail image."""
-        return RELATIVE_THUMB / (self.name + ".png")
+        return self._thumbnail_path
 
     def table_cell(self) -> str:
-        return (
-            f'<td><a href="{RELATIVE_FULL!s}/{self.name}.png">'
-            f'<img src="{RELATIVE_THUMB!s}/{self.name}.png" alt="{self.alt_text}">'
-            "</a></td>"
-        )
+        return f'<td><a href="{self.full_path}"><img src="{self.thumbnail_path}" alt="{self.alt_text}"></a></td>'
 
-    def __sub__(self, other) -> int:
+    def __sub__(self, other: ImageDataType) -> int:
         """Return the difference in height between this image and another image."""
         if not isinstance(other, ImageData):
             return NotImplemented
         return self.thumbnail.height - other.thumbnail.height
 
-with open("metadata.csv") as infile:
-    image_dict = {
-        row["name"]: ImageData(row["name"], row["alt_text"], set(row["categories"].split(",")))
-        for row in csv.DictReader(infile)
-    }
+    def jaccard_similarity(self, other: ImageDataType) -> float:
+        if not isinstance(other, ImageData):
+            return NotImplemented
+        return jaccard_similarity(self, other)
 
 
 @dataclass(frozen=True)
@@ -176,13 +180,8 @@ class Link:
         return f'<a href="{self.url}">{self.text}</a>'
 
 
-all_links = {}
-for path in sorted(Path("links").glob("*.csv")):
-    all_links[path.name[: -len(".csv")]] = [Link(row["url"], row["text"]) for row in csv.DictReader(path.open("r"))]
-
-
 @cache
-def jaccard_similarity(*args) -> float:
+def jaccard_similarity(*args: ImageData) -> float:
     """Calculate the Jaccard similarity of images based on metadata categories.
 
     1 indicates two images have identical categories.
@@ -198,22 +197,16 @@ def jaccard_similarity(*args) -> float:
         return sum(jaccard_similarity(arg_one, arg_two) for arg_one, arg_two in zip(args[:-1], args[1:]))
 
     arg_one, arg_two = args
-    if arg_one > arg_two:
+    if arg_one.name > arg_two.name:
         return jaccard_similarity(arg_two, arg_one)
-    first_categories = image_dict[arg_one].categories
-    second_categories = image_dict[arg_two].categories
-    return len(first_categories & second_categories) / len(first_categories | second_categories)
-
-
-@cache
-def height_difference(key_one: str, key_two: str) -> int:
-    """Return the height difference between two images."""
-    return image_dict[key_two].thumbnail.height - image_dict[key_one].thumbnail.height
+    return len(arg_one.categories & arg_two.categories) / len(arg_one.categories | arg_two.categories)
 
 
 def extracted_row_of_images(
-    remaining_images_in_order: list[str], row_length: int, image_filters: list[Callable[[str, str], bool]]
-) -> list[str]:
+    remaining_images_in_order: list[ImageData],
+    row_length: int,
+    image_filters: list[Callable[[ImageData, ImageData], bool]],
+) -> list[ImageData]:
     """Extract the next row of images from the sorted list of remaining images.
 
     Parameters
@@ -224,13 +217,13 @@ def extracted_row_of_images(
     row_length : int
         The number of images to place in the new row.
 
-    image_filters : list[Callable[[str, str], bool]]
+    image_filters : list[Callable[[ImageData, ImageData], bool]]
         List of image tests. All images passing the first filter should be evaluated before images passing the
         second filter, etc.
 
     Returns
     -------
-    list[str]
+    list[ImageData]
         Row of images
 
     """
@@ -260,14 +253,14 @@ def extracted_row_of_images(
 
 
 def generate_table_interior(
-    shortest_to_longest: list[str], row_length: int, max_pixel_diff: int
-) -> list[list[str | None]]:
+    shortest_to_longest: list[ImageData], row_length: int, max_pixel_diff: int
+) -> list[list[ImageData | None]]:
     """Generate the interior portions of a table of image names.
 
     Parameters
     ----------
-    shortest_to_longest: list[str]
-        Sorted list of image names
+    shortest_to_longest: list[ImageData]
+        Sorted list of images
     row_length : int
         Number of images to put in each row of the table
     max_pixel_diff: int
@@ -275,17 +268,17 @@ def generate_table_interior(
 
     Returns
     -------
-    list[list[str]]
+    list[list[ImageData | None]]
     """
     image_filters = {
         "increasing": [
-                lambda prev_key, cur_key: height_difference(prev_key, cur_key) < -max_pixel_diff,
-                lambda prev_key, cur_key: height_difference(prev_key, cur_key) <= max_pixel_diff
-            ],
+            lambda prev_image, cur_image: cur_image - prev_image < -max_pixel_diff,
+            lambda prev_image, cur_image: cur_image - prev_image <= max_pixel_diff,
+        ],
         "decreasing": [
-            lambda prev_key, cur_key: height_difference(prev_key, cur_key) > max_pixel_diff,
-            lambda prev_key, cur_key: height_difference(prev_key, cur_key) >= -max_pixel_diff
-        ]
+            lambda prev_image, cur_image: cur_image - prev_image > max_pixel_diff,
+            lambda prev_image, cur_image: cur_image - prev_image >= -max_pixel_diff,
+        ],
     }
 
     rows = []
@@ -337,7 +330,9 @@ def table_header_row(header: str) -> str:
     return 12 * " " + f"<tr><td><strong>{header}</strong></td></tr>"
 
 
-def generate_page(row_length: int, max_height_difference: int) -> str:
+def generate_page(
+    links_dict: dict[str, list[Link]], images: list[ImageData], row_length: int, max_height_difference: int
+) -> str:
     """Generate the web page."""
 
     html_strings = [
@@ -352,9 +347,11 @@ def generate_page(row_length: int, max_height_difference: int) -> str:
         4 * " " + '<div class="text">',
         8 * " " + "<table>",
     ]
-    for key, links in all_links.items():
+    for key, links in links_dict.items():
         html_strings.append(12 * " " + "<tr>")
-        html_strings.append(16 * " " + f"<td><strong>{' '.join([word.capitalize() for word in key.split('_')])}</strong></td>")
+        html_strings.append(
+            16 * " " + f"<td><strong>{' '.join([word.capitalize() for word in key.split('_')])}</strong></td>"
+        )
         for cells in link_cells(links, row_length - 1):
             html_strings.append(16 * " " + "<td>")
             html_strings.append(20 * " " + cells[0].table_cell())
@@ -363,19 +360,20 @@ def generate_page(row_length: int, max_height_difference: int) -> str:
             html_strings.append(16 * " " + "</td>")
         html_strings.append(12 * " " + "</tr>")
 
+    butts = next(image for image in images if image.name == "butts")
     shortest_to_longest = sorted(
-        [key for key in image_dict.keys() if key != "butts"], key=lambda x: image_dict[x].thumbnail.height
+        [image for image in images if image.name != "butts"], key=lambda image: image.thumbnail.height
     )
 
     rows = generate_table_interior(shortest_to_longest, row_length, max_height_difference)
     if len(rows[-1]) == row_length:
         rows.append([None] * (row_length - 1) + ["butts"])
     else:
-        rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + ["butts"]
+        rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + [butts]
 
     for row in rows:
         html_strings.append(12 * " " + "<tr>")
-        html_strings += [16 * " " + ("<td></td>" if cell is None else image_dict[cell].table_cell()) for cell in row]
+        html_strings += [16 * " " + ("<td></td>" if image is None else image.table_cell()) for image in row]
         html_strings.append(12 * " " + "</tr>")
 
     html_strings.append(8 * " " + "</table>")
@@ -386,10 +384,36 @@ def generate_page(row_length: int, max_height_difference: int) -> str:
     return "\n".join(html_strings)
 
 
+def load_images(image_directory: str | Path) -> list[ImageData]:
+    """Check for images, ingest metadata, and return as a dict."""
+
+    image_directory = Path(image_directory)
+    metadata_path = (image_directory / "metadata.csv").resolve(strict=True)
+    return [
+        ImageData(
+            image_directory / "thumbnail" / f"{row['name']}.png",
+            image_directory / "full" / f"{row['name']}.png",
+            row["alt_text"],
+            {category.strip() for category in row["categories"].split(",")},
+        )
+        for row in csv.DictReader(metadata_path.open("r"))
+    ]
+
+
+def load_links_dict(links_directory: str | Path) -> dict[str, list[Link]]:
+    """Ingest links files into a dict and return it."""
+    all_links = {}
+    for path in sorted(Path(links_directory).resolve(strict=True).glob("*.csv")):
+        all_links[path.name[: -len(".csv")]] = [Link(row["url"], row["text"]) for row in csv.DictReader(path.open("r"))]
+    return all_links
+
+
 def main() -> None:
     """Entry point."""
 
     parser = argparse.ArgumentParser(description="Generate a chunk of an HTML table.")
+    parser.add_argument("--links_directory", type=Path, default=Path("links"))
+    parser.add_argument("--image_directory", type=Path, default=Path("images"))
     parser.add_argument("--row_length", help="Number of objects per row", type=int, default=5)
     parser.add_argument(
         "--max_height_difference", help="Maximum difference in height between images", type=int, default=5
@@ -399,23 +423,11 @@ def main() -> None:
     if args.row_length < 2:
         raise ValueError(args.row_length)
 
-    for path in RELATIVE_THUMB, RELATIVE_FULL:
-        if not path.exists():
-            raise FileNotFoundError(path)
-
-    thumbnail_png_paths = RELATIVE_THUMB.glob("*")
-    full_png_paths = RELATIVE_FULL.glob("*")
-
-    thumbnail_names = {path.stem for path in thumbnail_png_paths}
-    full_names = {path.stem for path in full_png_paths}
-    image_dict_names = set(image_dict.keys())
-
-    missing_image_sets = tuple(sorted(image_names - image_dict_names) for image_names in (thumbnail_names, full_names))
-    if any(len(missing_image_set) > 0 for missing_image_set in missing_image_sets):
-        raise ValueError(missing_image_sets)
+    links_dict = load_links_dict(args.links_directory)
+    images = load_images(args.image_directory)
 
     with open("index.html", "w") as outfile:
-        outfile.write(generate_page(args.row_length, args.max_height_difference))
+        outfile.write(generate_page(links_dict, images, args.row_length, args.max_height_difference))
         outfile.write("\n")
 
 
