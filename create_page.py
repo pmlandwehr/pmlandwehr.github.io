@@ -367,7 +367,7 @@ def generate_page(
 
     rows = generate_table_interior(shortest_to_longest, row_length, max_height_difference)
     if len(rows[-1]) == row_length:
-        rows.append([None] * (row_length - 1) + ["butts"])
+        rows.append([None] * (row_length - 1) + [butts])
     else:
         rows[-1] = rows[-1] + [None] * (row_length - 1 - len(rows[-1])) + [butts]
 
