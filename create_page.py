@@ -22,6 +22,7 @@ _known_categories = {
 
 _implied_categories = {
     "black-and-white": {"buttercup-festival", "chainsawsuit", "kelly", "sarahs-scribbles", "xkcd"},
+    "color": {"penny-arcade", "rose-mosco", "webcomic-dot-name"},
     "comic": {
         "barsotti",
         "blitt",
@@ -30,13 +31,16 @@ _implied_categories = {
         "chainsawsuit",
         "kelly",
         "louder-and-smarter",
+        "penny-arcade",
         "perry-bible-fellowship",
         "rose-mosco",
         "roz-chast",
         "sarahs-scribbles",
         "tom-gauld",
+        "webcomic-dot-name",
         "xkcd",
     },
+    "mostly-white": {"chainsawsuit", "sarahs-scribbles", "webcomic-dot-name", "xkcd"},
     "new-yorker": {"barsotti", "blitt", "roz-chast"},
     "image": {"comic"},
     "post": {"twitter", "tumblr"},
