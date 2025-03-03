@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from functools import cache, cached_property
 import math
 from pathlib import Path
+import subprocess
 from typing import Callable, Iterator, TypeVar
 
 from PIL import Image
@@ -86,7 +87,7 @@ class ImageData:
 
     """
 
-    def __init__(self, thumbnail_path: Path, full_path: Path, alt_text: str, categories: set[str]):
+    def __init__(self, thumbnail_path: Path, full_path: Path, alt_text: str, categories: set[str], fix_missing_thumbnail: bool = True):
         self._thumbnail_path = thumbnail_path
         self._full_path = full_path
         self._alt_text = alt_text
@@ -109,6 +110,15 @@ class ImageData:
         unknown_categories = self.categories - _known_categories
         if len(unknown_categories) > 0:
             raise ValueError(unknown_categories)
+
+        if not self.full_path.is_file():
+            raise FileNotFoundError(self.full_path)
+
+        if not self.thumbnail_path.is_file() and fix_missing_thumbnail:
+            subprocess.run(["magick", str(self.full_path), "-resize", "200x", str(self.thumbnail_path)])
+
+        if not self.thumbnail_path.is_file():
+            raise FileNotFoundError(self.thumbnail_path)
 
         for path in self.full_path, self.thumbnail_path:
             if not path.is_file():
