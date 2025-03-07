@@ -1,10 +1,10 @@
 h1, h2, h3, h4, h5 {
-    font-family: 'Noto Sans', sans-serif;
+    font-family: 'Atkinson Hyperlegible';
     text-decoration: strong;
 }
 
 body {
-    font-family: 'Noto Serif', serif;
+    font-family: 'Atkinson Hyperlegible Mono';
     background-color: #eee;
     color: #111;
 }
