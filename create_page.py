@@ -87,7 +87,14 @@ class ImageData:
 
     """
 
-    def __init__(self, thumbnail_path: Path, full_path: Path, alt_text: str, categories: set[str], fix_missing_thumbnail: bool = True):
+    def __init__(
+        self,
+        thumbnail_path: Path,
+        full_path: Path,
+        alt_text: str,
+        categories: set[str],
+        fix_missing_thumbnail: bool = True,
+    ):
         self._thumbnail_path = thumbnail_path
         self._full_path = full_path
         self._alt_text = alt_text
@@ -353,7 +360,10 @@ def generate_page(
         "<!DOCTYPE html>",
         "<html>",
         "<head>",
-        4 * " " + '<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible" rel="stylesheet">',
+        4 * " " + '<link rel="preconnect" href="https://fonts.googleapis.com">',
+        4 * " " + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+        4 * " "
+        + '<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">',
         4 * " " + '<link href="style.css" rel="stylesheet" type="text/css">',
         4 * " " + "<title>A table relaxes the eyes</title>",
         "</head>",
